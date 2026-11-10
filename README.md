@@ -24,6 +24,7 @@ An event-driven, account-based outbound acquisition engine engineered in Python 
              ▼
 [ RFC 2822 SMTP Dispatcher ] ──► Injects In-Reply-To & References for Native Threading
 
+
 ⚡ Key Engineering Highlights
 RFC 2822 Reply Threading Engine: Reverse-engineered thread persistence across Google Workspace and Microsoft 365 by extracting server Message-ID values from IMAP and injecting explicit In-Reply-To and References headers on Step 2 follow-ups.
 
@@ -34,6 +35,7 @@ Multi-Tier Account Waterfalling: Prevents spamming entire organizations at once 
 Deliverability Safeguards: Features strict human-cadence throttling (15–20 sends/day), zero-link first touches to clear Proofpoint/Defender filters, and automated suppression list verification.
 
 Human-in-the-Loop Review Desk: Lightweight local dashboard allowing operator inspection, live draft regeneration, and manual queue authorization before any SMTP transaction fires.
+
 
 🛠️ Tech Stack
 Language: Python 3.11+
@@ -60,4 +62,3 @@ Launch the dashboard:
 Bash
 source .venv/bin/activate
 sellbird dashboard
-
