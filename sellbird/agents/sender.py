@@ -795,6 +795,29 @@ class Sender:
         await self.state.update_outbox_item(item["id"], send_at=ready_at.isoformat())
         return "wait"
 
+    async def _thread_args(self, item: dict, provider, inbox) -> tuple[str, str]:
+        """(thread_ref, in_reply_to) to send with. A sequence follow-up
+        answers the email before it: In-Reply-To/References name that email's
+        Message-ID, so Gmail and other clients show one thread, not a new
+        message. On Gmail it also joins the sending mailbox's own thread,
+        when that same mailbox sent the email before it."""
+        thread_ref = item.get("thread_ref") or ""
+        in_reply_to = item.get("in_reply_to") or ""
+        if item["kind"] != "sequence" or int(item["step"]) <= 1 or in_reply_to:
+            return thread_ref, in_reply_to
+        prev = await self.state.get_previous_step(item)
+        if prev is None or prev["status"] != "sent":
+            return thread_ref, in_reply_to
+        message_id = (prev.get("message_id") or "").strip()
+        if message_id.startswith("<") and message_id.endswith(">"):
+            in_reply_to = message_id
+        # A Gmail thread id means something only in the mailbox that made it.
+        mailbox = inbox.id if inbox is not None else ""
+        if (not thread_ref and provider.name == "gmail" and prev.get("provider") == "gmail"
+                and (prev.get("mailbox_id") or "") == mailbox):
+            thread_ref = prev.get("thread_ref") or ""
+        return thread_ref, in_reply_to
+
     async def _retry_later(self, item: dict, reason: str) -> datetime:
         """Move a cold email back by ADDRESS_RETRY_AFTER, saying why; return
         the new time. Sending it clears the note."""
@@ -1130,11 +1153,12 @@ class Sender:
                                                     error=f"held: {NO_HEADERS_HOLD}")
                 continue
             extra = {"headers": headers} if headers else {}
+            thread_ref, in_reply_to = await self._thread_args(item, provider, inbox)
             try:
                 result = await provider.send_email(
                     item["to_email"], item["subject"], body,
-                    thread_ref=item.get("thread_ref", ""),
-                    in_reply_to=item.get("in_reply_to", ""),
+                    thread_ref=thread_ref,
+                    in_reply_to=in_reply_to,
                     **extra,
                 )
             except Exception as e:

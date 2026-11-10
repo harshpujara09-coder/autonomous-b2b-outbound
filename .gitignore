@@ -58,3 +58,10 @@ sellbird.yaml.*
 harvey.local.yaml
 harvey.local.yaml.*
 harvey.yaml.*
+
+.env
+*.env
+*.db
+.venv/
+leads/
+
